@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <script src='http://cdn.ractivejs.org/latest/ractive.js'></script>
+  <style type='text/css'>
+    .inputs label { display: inline-block; width: 240px; }
+    .outputs { zoom: 15; width: 100%; height: 400px; padding: 20px;}
+    svg polyline { stroke-width: 0.1px; stroke: #444; fill: #fff;}
+    svg path { stroke-width: 0.1px; stroke: #444; fill: #fff;}
+  </style>
+</head>
+<body>
+  <div id='app'></div>
+  <script id='app_templ' type='text/ractivejs'>
+    {{>inputs}}
+    {{>output}}
+  </script>
+
+  <script id='output' type='text/ractivejs'>
+<div class='outputs'>
+    <svg id='neck_profile'>
+      <g>
+        <polyline points="
+                        {{length_at_12_fret(inputs)}}, {{height_at_12_fret(inputs)}}
+                        {{length_at_1_fret(inputs)}}, {{height_at_1_fret(inputs)}}
+                        {{headstock_x_dist(inputs) * 1.1}}, {{height_at_1_fret(inputs)}}
+                        {{headstock_x_dist(inputs)}}, {{height_at_1_fret(inputs) * inputs.volute_bump}}
+                        {{headstock_x_dist(inputs) * 0.8}}, {{(inputs.headstock_thickness + height_at_1_fret(inputs))/2 }}
+                        0, {{headstock_y_dist(inputs) + inputs.headstock_thickness}}
+                        0, {{headstock_y_dist(inputs)}}
+                        {{headstock_x_dist(inputs)}},0
+                        {{total_length(inputs)}},0
+                        {{total_length(inputs)}},{{inputs.body_thickness}}
+                        {{total_length(inputs) - body_length_before_neck_transition(inputs)}},{{inputs.body_thickness}}
+"/>
+      <path d='M {{total_length(inputs) - body_length_before_neck_transition(inputs)}},{{inputs.body_thickness}}
+            Q{{total_length(inputs) - body_length_before_neck_transition(inputs)}},{{height_at_12_fret(inputs)}}
+             {{length_at_12_fret(inputs)}},{{height_at_12_fret(inputs)}}
+'/>
+      </g>
+    </svg>
+    <svg id='neck_top'>
+
+    </svg>
+</div>
+  </script>
+
+  <script id='inputs' type='text/ractivejs'>
+  <div class='inputs'>
+    <div>
+      <label> Scale Length </label>
+      <input type=number value="{{inputs.scale_length}}"/> Inches
+    </div>
+    <div>
+      <label> Nut (Strings) Width </label>
+      <input type=number value="{{inputs.nut_strings_width}}"/> Inches
+    </div>
+    <div>
+      <label> Nut (Full) Width </label>
+      <input type=number value="{{inputs.nut_width}}"/> Inches
+    </div>
+    <div>
+      <label> Bridge (Strings) Width </label>
+      <input type=number value="{{inputs.bridge_strings_width}}"/> Inches
+    </div>
+    <div>
+      <label> Bridge (Full) Width </label>
+      <input type=number value="{{inputs.bridge_width}}"/> Inches
+    </div>
+    <div>
+      <label> Fret # </label>
+      <input type=number value="{{inputs.fret_number}}"/> Inches
+    </div>
+    <div>
+      <label> Fret 1 Thickness </label>
+      <input type=number value="{{inputs.fret_1_thickness}}"/> Inches
+    </div>
+    <div>
+      <label> Fret 12 Thickness </label>
+      <input type=number value="{{inputs.fret_12_thickness}}"/> Inches
+    </div>
+    <div>
+      <label> Headstock Width </label>
+      <input type=number value="{{inputs.headstock_width}}"/> Inches
+    </div>
+    <div>
+      <label> Headstock Length </label>
+      <input type=number value="{{inputs.headstock_length}}"/> Inches
+    </div>
+    <div>
+      <label> Headstock Thickness </label>
+      <input type=number value="{{inputs.headstock_thickness}}"/> Inches
+    </div>
+    <div>
+      <label> Headstock Angle </label>
+      <input type=number value="{{inputs.headstock_angle}}"/> Deg
+    </div>
+    <div>
+      <label> Volute Bump </label>
+      <input type=number value="{{inputs.volute_bump}}"/> %
+    </div>
+    <div>
+      <label> Fretboard Thickness </label>
+      <input type=number value="{{inputs.fretboard_thickness}}"/> Inches
+    </div>
+    <div>
+      <label> Body Thickness </label>
+      <input type=number value="{{inputs.body_thickness}}"/> Inches
+    </div>
+    <div>
+      <label> Bridge Dist To Edge</label>
+      <input type=number value="{{inputs.bridge_distance}}"/> Inches
+    </div>
+  </div>
+  </script>
+
+  <script>
+    const neck_l = (inputs) => {
+      return inputs.scale_length +
+            inputs.bridge_distance;
+    };
+    const head_y_dist = (inputs) => {
+      return (Math.sin(inputs.headstock_angle/180*Math.PI) * inputs.headstock_length);
+    };
+    const head_x_dist = (inputs) => {
+      return (Math.cos(inputs.headstock_angle/180*Math.PI) * inputs.headstock_length);
+    };
+    const fret_location_from_nut = (num, inputs) => {
+      return [ 0,
+        0.056126,
+        0.109101 ,
+        0.159104,
+        0.206291,
+        0.250847,
+        0.292893,
+        0.33258 ,
+        0.370039,
+        0.405396,
+        0.438769,
+        0.470268,
+        0.5     ,
+        0.528063,
+        0.554551,
+        0.579552,
+        0.60315,
+        0.625423,
+        0.646447,
+        0.66629,
+        0.68502,
+        0.702698,
+        0.719385,
+        0.735134,
+        0.75][num] * inputs.scale_length;
+    };
+    var view = new Ractive({
+      el: "#app",
+      template: "#app_templ",
+      data: {
+        total_length: (inputs) => {
+          return neck_l(inputs) +  head_x_dist(inputs);
+        },
+        neck_length: (inputs) => {
+          return neck_l(inputs);
+        },
+        headstock_x_dist: (inputs) => { return head_x_dist(inputs); },
+        headstock_y_dist: (inputs) => { return head_y_dist(inputs); },
+        body_length_before_neck_transition: (inputs) => {
+          return neck_l(inputs) - fret_location_from_nut(inputs.fret_number,inputs);
+        },
+        length_at_12_fret: (inputs) => {
+          return head_x_dist(inputs) + fret_location_from_nut(12,inputs);
+        },
+        height_at_12_fret: (inputs) => {
+          return inputs.fret_12_thickness;
+        },
+        length_at_1_fret: (inputs) => {
+          return head_x_dist(inputs) + fret_location_from_nut(1,inputs);
+        },
+        height_at_1_fret: (inputs) => {
+          return inputs.fret_1_thickness;
+        },
+        inputs: {
+          bridge_distance: 3,
+          scale_length: 30,
+          nut_strings_width: 1.250,
+          nut_width: 1.650,
+          bridge_strings_width: 2.25,
+          bridge_width: 3.375,
+          fret_number: 20,
+          fret_1_thickness: 0.85,
+          fret_12_thickness: 1,
+          volute_bump: 1.2,
+          headstock_width: 4.5,
+          headstock_thickness: 0.5,
+          headstock_length: 6,
+          headstock_angle: 8,
+          fretboard_thickness: 0.25,
+          body_thickness: 1.75
+        }
+      }
+    });
+  </script>
+</body>
+</html>
